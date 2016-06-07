@@ -1,12 +1,74 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, render_to_response
 from amer.forms import ContactForm, menuForm
+from amer.models import Character
 import datetime
 from django.http import HttpResponseRedirect
+from django.template import RequestContext
+from django.contrib import auth
+from django.core.context_processors import csrf
 
 
 
-def page_title_changer(request):
-    return render(request,'child.html')
+
+from django.http import HttpResponse
+from django.views.generic import View
+
+
+
+def login_view(request):
+    c = {}
+    c.update(csrf(request))
+    return render(request,'login.html',c)
+
+def auth_view(request):
+    username = request.POST.get('username', '')
+    password = request.POST.get('password', '')
+    user = auth.authenticate(username = username, password= password)
+
+    if user is not None:
+        auth.login(request, user)
+        return HttpResponseRedirect('/amer/loggedin')
+    else:
+        return HttpResponseRedirect('/amer/invalid')
+
+def loggedin(request):
+    return render(request,'loggedin.html',
+                              {'full_name':request.user.username}) 
+
+def invalid(request):
+    return render(request,'invalid.html')
+    
+def logout(request):
+    auth.logout(request)
+    return render(request,'logout.html')
+
+class GreetingView(View):
+    greeting = ""
+
+    def get(self, request):
+        return HttpResponse(self.greeting)
+
+def about(request,template_name):
+    return render(request, template_name)
+
+def custom_proc(request):
+
+    return {
+        'app':'Hi, here',
+        'message':'i am a smile in your mirror ',
+        }
+
+
+def request_view(request, template_name):
+    return render(request, template_name, context_instance=RequestContext(request, processors=[custom_proc]))
+
+def page_title_changer(request,id):
+    ''' I have regular group expression in url a/(?P<id>\d+)/$. I'll implement get_object_or_404 to catch others urls than id(model)!=id(from url)'''
+    '''If model id don't exists - request method get exception -404'''
+    instance = get_object_or_404(Character, id=id)
+    context = {'instance':instance}
+    return render(request,'child.html',context)
+
 
 # Create your views here.
 def home_page(request, model):
@@ -17,7 +79,6 @@ def home_page(request, model):
 
 
 def forms_need(request,template_name):
-
     return render(request,template_name)
 
 def contact(request):
